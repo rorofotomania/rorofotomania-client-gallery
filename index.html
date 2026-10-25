@@ -93,12 +93,101 @@
       remembered, and treasured.
     </p>
     <div class="status">
-      Your private gallery is being prepared.
+      
+<div id="gallery-login">
+  <h2>Welcome, Jackson &amp; Ornie</h2>
+  <p>Enter your private gallery code to view your photos.</p>
+  <input
+    id="gallery-code"
+    type="password"
+    placeholder="Enter your gallery code"
+    autocomplete="off"
+  />
+  <button id="open-gallery" type="button">Open My Gallery</button>
+  <p id="gallery-message" role="status"></p>
+</div>
+
+<div id="gallery-photos"></div>
+
     </div>
   </main>
 
   <footer>
     ©️ 2026 rorofotomania. All rights reserved.
   </footer>
+  
+<script>
+const GALLERY_FUNCTION =
+  "https://ilemjgdykbuoojhvhhlw.supabase.co/functions/v1/client-gallery";
+
+const SUPABASE_PUBLIC_KEY =
+  "sb_publishable_2UF7K5oqMSEQkYDz4DwDZQ_Y7NASk58";
+
+document.getElementById("open-gallery").addEventListener("click", async () => {
+  const code = document.getElementById("gallery-code").value.trim();
+  const message = document.getElementById("gallery-message");
+  const gallery = document.getElementById("gallery-photos");
+  const button = document.getElementById("open-gallery");
+
+  if (!code) {
+    message.textContent = "Please enter your gallery code.";
+    return;
+  }
+
+  button.disabled = true;
+  message.textContent = "Loading your private gallery...";
+  gallery.replaceChildren();
+
+  try {
+    const response = await fetch(GALLERY_FUNCTION, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_PUBLIC_KEY,
+        "Authorization": "Bearer " + SUPABASE_PUBLIC_KEY
+      },
+      body: JSON.stringify({ gallery_code: code })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Unable to open gallery.");
+    }
+
+    const heading = document.createElement("h2");
+    heading.textContent = result.client_name;
+    gallery.appendChild(heading);
+
+    if (!result.photos || result.photos.length === 0) {
+      message.textContent = "No photos were found.";
+      return;
+    }
+
+    const grid = document.createElement("div");
+    grid.style.cssText =
+      "display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;";
+
+    result.photos.forEach((photo) => {
+      const img = document.createElement("img");
+      img.src = photo.url;
+      img.alt = "Private client photograph";
+      img.loading = "lazy";
+      img.style.cssText =
+        "width:100%;height:auto;display:block;border-radius:6px;";
+      grid.appendChild(img);
+    });
+
+    gallery.appendChild(grid);
+    message.textContent = result.photos.length + " photos loaded.";
+  } catch (error) {
+    message.textContent =
+      error.message || "Something went wrong. Please try again.";
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+
 </body>
 </html>
