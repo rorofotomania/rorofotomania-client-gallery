@@ -168,15 +168,138 @@ document.getElementById("open-gallery").addEventListener("click", async () => {
     grid.style.cssText =
       "display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;";
 
-    result.photos.forEach((photo) => {
-      const img = document.createElement("img");
-      img.src = photo.url;
-      img.alt = "Private client photograph";
-      img.loading = "lazy";
-      img.style.cssText =
-        "width:100%;height:auto;display:block;border-radius:6px;";
-      grid.appendChild(img);
-    });
+   let currentPhotoIndex = 0;
+
+const lightbox = document.createElement("div");
+lightbox.style.cssText = `
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  background:rgba(0,0,0,0.95);
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  box-sizing:border-box;
+`;
+
+const largePhoto = document.createElement("img");
+largePhoto.style.cssText = `
+  max-width:85%;
+  max-height:85vh;
+  object-fit:contain;
+  border-radius:4px;
+`;
+
+const closeButton = document.createElement("button");
+closeButton.textContent = "✕";
+closeButton.setAttribute("aria-label", "Close photo");
+closeButton.style.cssText = `
+  position:absolute;top:15px;right:20px;
+  font-size:30px;color:white;background:none;
+  border:0;cursor:pointer;
+`;
+
+const previousButton = document.createElement("button");
+previousButton.textContent = "❮";
+previousButton.setAttribute("aria-label", "Previous photo");
+previousButton.style.cssText = `
+  position:absolute;left:12px;top:50%;
+  transform:translateY(-50%);
+  font-size:30px;color:white;background:none;
+  border:0;cursor:pointer;padding:15px;
+`;
+
+const nextButton = document.createElement("button");
+nextButton.textContent = "❯";
+nextButton.setAttribute("aria-label", "Next photo");
+nextButton.style.cssText = `
+  position:absolute;right:12px;top:50%;
+  transform:translateY(-50%);
+  font-size:30px;color:white;background:none;
+  border:0;cursor:pointer;padding:15px;
+`;
+
+const photoCounter = document.createElement("div");
+photoCounter.style.cssText = `
+  position:absolute;bottom:15px;left:0;right:0;
+  text-align:center;color:white;font:16px Arial,sans-serif;
+`;
+
+function showLargePhoto(index) {
+  currentPhotoIndex =
+    (index + result.photos.length) % result.photos.length;
+
+  largePhoto.src = result.photos[currentPhotoIndex].url;
+  photoCounter.textContent =
+    (currentPhotoIndex + 1) + " / " + result.photos.length;
+
+  lightbox.style.display = "flex";
+}
+
+function closeLightbox() {
+  lightbox.style.display = "none";
+  largePhoto.removeAttribute("src");
+}
+
+previousButton.addEventListener("click", () => {
+  showLargePhoto(currentPhotoIndex - 1);
+});
+
+nextButton.addEventListener("click", () => {
+  showLargePhoto(currentPhotoIndex + 1);
+});
+
+closeButton.addEventListener("click", closeLightbox);
+
+lightbox.addEventListener("click", (event) => {
+  if (event.target === lightbox) {
+    closeLightbox();
+  }
+});
+
+largePhoto.addEventListener("click", (event) => {
+  event.stopPropagation();
+});
+
+const handleLightboxKeys = (event) => {
+  if (lightbox.style.display !== "flex") return;
+
+  if (event.key === "Escape") closeLightbox();
+  if (event.key === "ArrowLeft") {
+    showLargePhoto(currentPhotoIndex - 1);
+  }
+  if (event.key === "ArrowRight") {
+    showLargePhoto(currentPhotoIndex + 1);
+  }
+};
+
+document.addEventListener("keydown", handleLightboxKeys);
+
+lightbox.append(
+  largePhoto,
+  previousButton,
+  nextButton,
+  closeButton,
+  photoCounter
+);
+
+gallery.appendChild(lightbox);
+
+result.photos.forEach((photo, index) => {
+  const img = document.createElement("img");
+  img.src = photo.url;
+  img.alt = "Private client photograph";
+  img.loading = "lazy";
+  img.style.cssText =
+    "width:100%;height:auto;display:block;border-radius:6px;cursor:zoom-in;";
+
+  img.addEventListener("click", () => {
+    showLargePhoto(index);
+  });
+
+  grid.appendChild(img);
+});
 
     gallery.appendChild(grid);
     message.textContent = result.photos.length + " photos loaded.";
